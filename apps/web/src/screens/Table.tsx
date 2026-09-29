@@ -215,6 +215,28 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
     // pump は ref だけを読むので依存は game だけでよい
   }, [game]);
 
+  // 対局中は画面を消さない（他の人の番の間に画面が消えると通信が切れやすい）
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    let active = true;
+    const acquire = async () => {
+      try {
+        if (active && document.visibilityState === 'visible' && 'wakeLock' in navigator) {
+          lock = await navigator.wakeLock.request('screen');
+        }
+      } catch {
+        // 対応していない端末や省電力モードでは何もしない
+      }
+    };
+    void acquire();
+    document.addEventListener('visibilitychange', acquire);
+    return () => {
+      active = false;
+      document.removeEventListener('visibilitychange', acquire);
+      void lock?.release().catch(() => {});
+    };
+  }, []);
+
   // ---------- 握る・投げる ----------
 
   const startHold = useCallback(() => {

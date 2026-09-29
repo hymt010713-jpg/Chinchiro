@@ -21,21 +21,40 @@ function wsUrl(): string {
   return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 }
 
-/** 同じタブで再読み込みしても席に戻れるよう sessionStorage に置く（タブごとに別の人になれる） */
+/**
+ * 席の鍵。同じタブの再読み込みは sessionStorage から戻る。
+ * タブが閉じられた後（LINE のアプリ内ブラウザで開き直したときなど）は localStorage から戻る。
+ */
 export function loadSeat(): SavedSeat | null {
-  try {
-    const raw = sessionStorage.getItem(SEAT_KEY);
-    return raw ? (JSON.parse(raw) as SavedSeat) : null;
-  } catch {
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      const raw = store.getItem(SEAT_KEY);
+      if (raw) return JSON.parse(raw) as SavedSeat;
+    } catch {
+      // 読めなければ次へ
+    }
+  }
+  return null;
+}
+/** 招待リンクで別の部屋を開いたときは、前の部屋の席には戻らない */
+function currentSeat(): SavedSeat | null {
+  const seat = loadSeat();
+  const invite = new URLSearchParams(location.search).get('room')?.toUpperCase();
+  if (seat && invite && seat.code !== invite) {
+    saveSeat(null);
     return null;
   }
+  return seat;
 }
+
 function saveSeat(seat: SavedSeat | null) {
-  try {
-    if (seat) sessionStorage.setItem(SEAT_KEY, JSON.stringify(seat));
-    else sessionStorage.removeItem(SEAT_KEY);
-  } catch {
-    // 保存できなくても遊べる（再読み込みで席に戻れないだけ）
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      if (seat) store.setItem(SEAT_KEY, JSON.stringify(seat));
+      else store.removeItem(SEAT_KEY);
+    } catch {
+      // 保存できなくても遊べる（開き直したときに席に戻れないだけ）
+    }
   }
 }
 
@@ -90,7 +109,7 @@ export function useOnline(): Online {
     sock.onopen = () => {
       retry.current = 0;
       setStatus('open');
-      const seat = loadSeat();
+      const seat = currentSeat();
       if (pending.current) {
         sock.send(JSON.stringify(pending.current));
         pending.current = null;
@@ -124,7 +143,7 @@ export function useOnline(): Online {
     sock.onclose = () => {
       if (ws.current !== sock) return;
       ws.current = null;
-      if (leaving.current || !loadSeat()) {
+      if (leaving.current || !currentSeat()) {
         setStatus('idle');
         return;
       }
@@ -138,9 +157,9 @@ export function useOnline(): Online {
 
   // 席が残っていれば（再読み込み後など）すぐ戻る
   useEffect(() => {
-    if (loadSeat()) connect();
+    if (currentSeat()) connect();
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && loadSeat() && !ws.current) connect();
+      if (document.visibilityState === 'visible' && currentSeat() && !ws.current) connect();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {

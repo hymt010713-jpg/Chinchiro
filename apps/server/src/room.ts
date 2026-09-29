@@ -45,6 +45,8 @@ interface Member {
   name: string;
   token: string;
   conn: Conn | null;
+  /** 接続が切れた時刻（つながっている間は null） */
+  offlineAt: number | null;
 }
 
 /** 演出の終わりと押す操作のずれを許す幅 */
@@ -107,7 +109,7 @@ export class Room {
     this.members = this.members.filter((m) => m.conn || m.name !== name);
     if (!this.members.some((m) => m.id === this.hostId)) this.hostId = this.members.find((m) => m.conn)?.id ?? '';
     if (this.members.some((m) => m.name === name)) throw new GameError('同じ名前の人がいます');
-    const m: Member = { id: `m${++this.seq}`, name, token: randomBytes(16).toString('hex'), conn };
+    const m: Member = { id: `m${++this.seq}`, name, token: randomBytes(16).toString('hex'), conn, offlineAt: null };
     this.members.push(m);
     if (!this.hostId) this.hostId = m.id;
     // 全員への通知は、本人に welcome を送ったあとで呼び出し側が行う
@@ -118,15 +120,22 @@ export class Room {
     const m = this.members.find((x) => x.id === id && x.token === token);
     if (!m) throw new GameError('部屋に戻れませんでした');
     m.conn = conn;
+    m.offlineAt = null;
     if (this.stage === 'playing' && this.game && currentRoller(this.game) === id) this.scheduleRoll();
     return m;
   }
 
-  /** 接続が切れた。席は残し（同じ鍵で戻れる）、対局中はBOTが代わりに打つ */
-  disconnect(id: string) {
+  /**
+   * 接続が切れた。席は残し（同じ鍵で戻れる）、対局中はBOTが代わりに打つ。
+   * conn を渡したときは、その接続がまだ席の接続である場合だけ扱う
+   * （回線の切り替えで新しい接続が先に戻ってきた後に、古い接続の切断が届くことがある）
+   */
+  disconnect(id: string, conn?: Conn) {
     const m = this.members.find((x) => x.id === id);
     if (!m) return;
+    if (conn && m.conn !== conn) return;
     m.conn = null;
+    m.offlineAt = Date.now();
     if (this.holding === id) this.holding = null;
     if (this.stage === 'playing' && this.game) {
       if (this.game.phase === 'betting' && this.game.order.includes(id)) {
@@ -164,6 +173,17 @@ export class Room {
     if (host?.conn) return;
     const next = this.members.find((x) => x.conn) ?? (host ? undefined : this.members[0]);
     if (next) this.hostId = next.id;
+  }
+
+  /** 待合室で長く接続が切れたままの席を空ける（満席のまま動けなくなるのを防ぐ） */
+  pruneLobby(now: number, ttlMs: number) {
+    if (this.stage !== 'lobby') return;
+    const before = this.members.length;
+    this.members = this.members.filter((m) => m.conn || now - (m.offlineAt ?? now) < ttlMs);
+    if (this.members.length === before) return;
+    if (!this.members.some((m) => m.id === this.hostId)) this.hostId = '';
+    this.passHostIfAway();
+    this.broadcast();
   }
 
   isOnline(id: string) {
@@ -284,9 +304,18 @@ export class Room {
   }
 
   private roll(id: string) {
-    if (this.stage !== 'playing' || !this.game) throw new GameError('対局中ではありません');
-    if (currentRoller(this.game) !== id) throw new GameError('あなたの番ではありません');
-    if (Date.now() < this.lockUntil - LOCK_TOLERANCE_MS) throw new GameError('前の人の演出が終わるまで待ってください');
+    try {
+      if (this.stage !== 'playing' || !this.game) throw new GameError('対局中ではありません');
+      if (currentRoller(this.game) !== id) throw new GameError('あなたの番ではありません');
+      if (Date.now() < this.lockUntil - LOCK_TOLERANCE_MS) throw new GameError('前の人の演出が終わるまで待ってください');
+    } catch (e) {
+      // 投げられなかったので「握っている」表示を戻す
+      if (this.holding === id) {
+        this.holding = null;
+        this.broadcast();
+      }
+      throw e;
+    }
     this.doRoll(id);
   }
 
@@ -348,7 +377,8 @@ export class Room {
       config: this.config,
       stage: this.stage,
       draw: this.draw,
-      game: this.game,
+      // 過去の局の記録は結果画面でしか使わない。対局中に毎回送ると通信量が局数に比例して増えるので省く
+      game: this.game && this.stage !== 'finished' ? { ...this.game, history: [] } : this.game,
       betsDone: [...this.betsDone],
       deadline: this.deadline,
       holding: this.holding,

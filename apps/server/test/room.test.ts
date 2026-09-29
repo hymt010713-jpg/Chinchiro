@@ -90,6 +90,16 @@ describe('入室', () => {
     expect(room.view().members.map((m) => m.id)).toEqual([ids[0], ids[1]]);
   });
 
+  it('待合室で2分以上接続が切れたままの席は空く', () => {
+    const { room, ids } = setup(3);
+    room.disconnect(ids[0]!);
+    room.pruneLobby(Date.now() + 60_000, 120_000);
+    expect(room.view().members).toHaveLength(3);
+    room.pruneLobby(Date.now() + 121_000, 120_000);
+    expect(room.view().members.map((m) => m.id)).toEqual([ids[1], ids[2]]);
+    expect(room.hostId).toBe(ids[1]);
+  });
+
   it('部屋主以外は開始できない。1人では開始できない', () => {
     const { room, ids } = setup(2);
     expect(() => room.handle(ids[1]!, { t: 'start' })).toThrow('部屋を作った人');
@@ -174,6 +184,41 @@ describe('対局', () => {
     room.reconnect(kids[0]!, tokens[idx]!, back);
     room.broadcast(); // サーバーは welcome を送ってから全員に知らせる
     expect(back.last?.members.find((m) => m.id === kids[0])?.online).toBe(true);
+  });
+
+  it('回線の切り替えで新しい接続が先に戻ったあと、古い接続の切断が届いても席はオフラインにならない', () => {
+    const { room, ids, tokens, conns } = setup(3);
+    const fresh = new FakeConn();
+    room.reconnect(ids[1]!, tokens[1]!, fresh);
+    room.disconnect(ids[1]!, conns[1]!); // 古い接続の切断
+    expect(room.isOnline(ids[1]!)).toBe(true);
+    room.disconnect(ids[1]!, fresh);
+    expect(room.isOnline(ids[1]!)).toBe(false);
+  });
+
+  it('対局中は過去の局の記録を送らず、終局後だけ送る', () => {
+    const { room, ids, conns } = setup(2);
+    room.handle(ids[0]!, { t: 'start' });
+    for (let i = 0; i < 400 && room.stage === 'drawing'; i++) tick(250);
+    for (let i = 0; i < 400 && (room.game?.history.length ?? 0) < 2; i++) tick(1_000);
+    expect(room.game!.history.length).toBeGreaterThanOrEqual(2);
+    expect(conns[0]!.last!.game!.history).toEqual([]);
+    for (let i = 0; i < 400 && room.stage !== 'finished'; i++) tick(20_000);
+    expect(conns[0]!.last!.game!.history).toHaveLength(6);
+  });
+
+  it('投擲が断られたら「握っている」表示を戻す', () => {
+    const { room, ids } = setup(3);
+    room.handle(ids[0]!, { t: 'start' });
+    untilBetting(room);
+    for (const k of room.game!.order) room.handle(k, { t: 'betDone' });
+    const first = currentRoller(room.game!)!;
+    room.handle(first, { t: 'roll' });
+    const next = currentRoller(room.game!)!;
+    room.handle(next, { t: 'hold', on: true });
+    expect(room.holding).toBe(next);
+    expect(() => room.handle(next, { t: 'roll' })).toThrow('演出');
+    expect(room.holding).toBeNull();
   });
 
   it('終局後、部屋主は再戦でロビーに戻せる', () => {

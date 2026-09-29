@@ -8,7 +8,7 @@ import { randomInt } from 'node:crypto';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
-import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   GameError,
@@ -26,6 +26,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const STATIC_DIR = resolve(process.env.STATIC_DIR ?? join(here, '../../web/dist'));
 /** 誰も接続していない部屋を片付けるまで */
 const EMPTY_ROOM_TTL_MS = 10 * 60_000;
+/** 待合室で接続が切れたままの席を空けるまで */
+const LOBBY_SEAT_TTL_MS = 2 * 60_000;
+/** 1接続あたりのメッセージ数の上限（RATE_WINDOW_MS ごと） */
+const RATE_LIMIT = 30;
+const RATE_WINDOW_MS = 5_000;
 const MAX_ROOMS = 1000;
 
 /** サーバーの出目は暗号学的乱数から作る */
@@ -55,14 +60,32 @@ const TYPES: Record<string, string> = {
 };
 
 function serveStatic(req: IncomingMessage, res: ServerResponse) {
+  try {
+    serveStaticInner(req, res);
+  } catch (e) {
+    // どんなリクエストでもサーバー全体を落とさない
+    console.error('[http]', e);
+    if (!res.headersSent) res.writeHead(500);
+    res.end();
+  }
+}
+
+function serveStaticInner(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? '/', 'http://x');
   if (url.pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end(`ok rooms=${rooms.size}`);
     return;
   }
-  let file = normalize(join(STATIC_DIR, decodeURIComponent(url.pathname)));
-  if (!file.startsWith(STATIC_DIR)) {
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400).end();
+    return;
+  }
+  let file = normalize(join(STATIC_DIR, path));
+  if (file !== STATIC_DIR && !file.startsWith(STATIC_DIR + sep)) {
     res.writeHead(403).end();
     return;
   }
@@ -96,6 +119,13 @@ const alive = new WeakSet<WebSocket>();
 wss.on('connection', (ws: WebSocket) => {
   alive.add(ws);
   ws.on('pong', () => alive.add(ws));
+  // 大きすぎるメッセージなどの通信エラーはこの接続だけを切る（リスナーがないとサーバーごと落ちる）
+  ws.on('error', (e) => {
+    console.warn('[ws]', e.message);
+    ws.terminate();
+  });
+  let windowStart = Date.now();
+  let count = 0;
   const s: Session = { room: null, memberId: null };
   const conn = {
     send(msg: ServerMessage) {
@@ -110,6 +140,16 @@ wss.on('connection', (ws: WebSocket) => {
   };
 
   ws.on('message', (data) => {
+    const now = Date.now();
+    if (now - windowStart > RATE_WINDOW_MS) {
+      windowStart = now;
+      count = 0;
+    }
+    if (++count > RATE_LIMIT) {
+      if (count === RATE_LIMIT + 1) conn.send({ t: 'error', message: '操作が多すぎます。少し待ってください' });
+      if (count > RATE_LIMIT * 4) ws.close(1008, 'rate limit');
+      return;
+    }
     let msg: ClientMessage;
     try {
       msg = JSON.parse(String(data));
@@ -182,7 +222,7 @@ wss.on('connection', (ws: WebSocket) => {
 
   // 接続が切れただけなら席は残す（再接続で戻れる）
   ws.on('close', () => {
-    if (s.room && s.memberId) s.room.disconnect(s.memberId);
+    if (s.room && s.memberId) s.room.disconnect(s.memberId, conn);
   });
 });
 
@@ -197,6 +237,7 @@ setInterval(() => {
     ws.ping();
   }
   const now = Date.now();
+  for (const room of rooms.values()) room.pruneLobby(now, LOBBY_SEAT_TTL_MS);
   for (const [code, room] of rooms) {
     if (room.hasConnected()) {
       emptySince.delete(code);

@@ -26,6 +26,7 @@ type Screen = 'home' | 'setup' | 'draw' | 'table' | 'result' | 'online';
 const inviteCode = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 
 export function App() {
+  // 招待リンクで開いたか、前回の席が残っていればオンライン画面から始める
   const [screen, setScreen] = useState<Screen>(inviteCode || loadSeat() ? 'online' : 'home');
   const [players, setPlayers] = useState<Player[]>(
     DEFAULT_NAMES.slice(0, 4).map((name, i) => ({ id: `p${i}`, name })),
