@@ -86,3 +86,11 @@ export type ServerMessage =
 
 export const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const NAME_MAX = 8;
+
+/**
+ * 1対局のおおよその長さ（分）。1局 ≒ 賭け8秒 ＋ 1人あたり（投擲と演出と精算）4秒 ＋ 次の局まで4秒
+ */
+export function estimateMinutes(players: number, laps: number): number {
+  const perRoundSec = 12 + 4 * players;
+  return Math.max(1, Math.round((players * laps * perRoundSec) / 60));
+}

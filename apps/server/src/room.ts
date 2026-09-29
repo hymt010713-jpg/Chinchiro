@@ -6,9 +6,12 @@ import { randomBytes } from 'node:crypto';
 import {
   BET_MS,
   BOT_ROLL_MS,
+  DEFAULT_CONFIG,
   DRAW_ROUND_MS,
   GameError,
+  MAX_LAPS,
   MAX_PLAYERS,
+  MIN_LAPS,
   MIN_PLAYERS,
   NAME_MAX,
   NEXT_ROUND_MS,
@@ -48,11 +51,12 @@ interface Member {
 const LOCK_TOLERANCE_MS = 150;
 
 export function sanitizeConfig(c: Partial<RoomConfig> | undefined): RoomConfig {
-  const laps = Math.round(Number(c?.laps));
+  const raw = Math.round(Number(c?.laps));
+  const laps = Number.isFinite(raw) ? Math.min(MAX_LAPS, Math.max(MIN_LAPS, raw)) : DEFAULT_CONFIG.laps;
   return {
     shintaki: c?.shintaki === true,
     shonben: c?.shonben === true,
-    laps: laps >= 1 && laps <= 3 ? laps : 2,
+    laps,
     unitPoints: 100,
     maxBet: 5,
   };

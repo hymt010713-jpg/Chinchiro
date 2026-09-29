@@ -13,7 +13,7 @@ class FakeConn {
   }
 }
 
-function setup(n: number, laps = 1) {
+function setup(n: number, laps = 3) {
   const room = new Room('TEST', { ...DEFAULT_CONFIG, laps }, mulberry32(1));
   const conns = Array.from({ length: n }, () => new FakeConn());
   const ms = conns.map((c, i) => room.addMember(`P${i}`, c));
@@ -50,11 +50,15 @@ describe('入室', () => {
     expect(() => cleanName('   ')).toThrow(GameError);
   });
 
-  it('設定は想定外の値を正す', () => {
+  it('設定は想定外の値を正す。周数は3〜10', () => {
     expect(sanitizeConfig({ laps: 99, shintaki: 'yes' as unknown as boolean })).toEqual({
       ...DEFAULT_CONFIG,
-      laps: 2,
+      laps: 10,
     });
+    expect(sanitizeConfig({ laps: 1 }).laps).toBe(3);
+    expect(sanitizeConfig({ laps: 7 }).laps).toBe(7);
+    expect(sanitizeConfig({ laps: 'x' as unknown as number }).laps).toBe(3);
+    expect(sanitizeConfig(undefined).laps).toBe(3);
   });
 
   it('ロビーで部屋主が退室すると次の人が部屋主', () => {
@@ -97,14 +101,14 @@ describe('入室', () => {
 
 describe('対局', () => {
   it('誰も操作しなくても締切とBOTで最後まで進み、合計0で終わる', () => {
-    const { room, ids, conns } = setup(4, 2);
+    const { room, ids, conns } = setup(4, 3);
     room.handle(ids[0]!, { t: 'start' });
     expect(room.stage).toBe('drawing');
     expect(() => room.addMember('途中', new FakeConn())).toThrow('対局中');
     for (let i = 0; i < 500 && room.stage !== 'finished'; i++) tick(20_000);
     expect(room.stage).toBe('finished');
     const g = room.view().game!;
-    expect(g.history).toHaveLength(8);
+    expect(g.history).toHaveLength(12);
     expect(Object.values(g.scores).reduce((a, b) => a + b, 0)).toBe(0);
     expect(conns[3]!.last!.stage).toBe('finished');
   });

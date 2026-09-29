@@ -33,7 +33,7 @@ function bot(name: string, isCreator: boolean): Promise<void> {
     const send = (m: object) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(m));
 
     ws.on('open', () => {
-      if (isCreator) send({ t: 'create', name, config: { ...DEFAULT_CONFIG, laps: 1, shintaki: true } });
+      if (isCreator) send({ t: 'create', name, config: { ...DEFAULT_CONFIG, shintaki: true } });
       else send({ t: 'join', code: roomCode, name });
     });
 

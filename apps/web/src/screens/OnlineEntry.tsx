@@ -84,8 +84,7 @@ export function OnlineEntry({ online, initialCode, onBack }: Props) {
 
       <section className="panel">
         <h2>部屋を作る</h2>
-        <RoomSettings config={config} players={4} onChange={setConfig} />
-        <p className="small sub">局数は集まった人数で決まります（上は4人の場合）。</p>
+        <RoomSettings config={config} players={null} onChange={setConfig} />
         <button
           type="button"
           className="btn primary big"

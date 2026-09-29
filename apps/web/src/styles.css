@@ -242,29 +242,49 @@ input:focus-visible {
   left: 23px;
 }
 .laps {
+  display: grid;
+  gap: 6px;
+}
+.laps-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.seg {
+.laps-label {
+  display: grid;
+}
+.laps-label small {
+  color: var(--sub);
+  font-size: 12px;
+}
+.stepper {
   display: inline-flex;
+  align-items: center;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
+  flex: none;
 }
-.seg button {
+.stepper button {
   font: inherit;
-  background: transparent;
-  color: var(--kinari);
+  font-size: 20px;
+  width: 44px;
+  height: 44px;
   border: 0;
-  padding: 6px 14px;
+  background: var(--ai3);
+  color: var(--kinari);
   cursor: pointer;
 }
-.seg button.on {
-  background: var(--kin);
-  color: #1a1206;
-  font-weight: 700;
+.stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.stepper output {
+  min-width: 4.5em;
+  text-align: center;
+  font-size: 17px;
+  color: var(--kin);
 }
 
 /* ---------- draw ---------- */
@@ -1114,12 +1134,6 @@ td.yk {
 .switch input:disabled {
   opacity: 0.7;
   cursor: default;
-}
-.seg button:disabled {
-  cursor: default;
-}
-.seg button:disabled:not(.on) {
-  opacity: 0.6;
 }
 .toast {
   position: fixed;

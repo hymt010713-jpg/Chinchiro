@@ -1,8 +1,9 @@
-import type { RoomConfig } from '@chinchiro/rules';
+import { MAX_LAPS, MIN_LAPS, estimateMinutes, type RoomConfig } from '@chinchiro/rules';
 
 interface Props {
   config: RoomConfig;
-  players: number;
+  /** 人数。まだ分からないとき（部屋を作る前）は null */
+  players: number | null;
   /** 渡さなければ見るだけ */
   onChange?: (c: RoomConfig) => void;
 }
@@ -38,24 +39,37 @@ export function RoomSettings({ config, players, onChange }: Props) {
         </span>
       </label>
       <div className="laps">
-        <b>周数</b>
-        <div className="seg" role="radiogroup" aria-label="周数">
-          {[1, 2, 3].map((n) => (
+        <div className="laps-row">
+          <span className="laps-label">
+            <b>周数</b>
+            <small>1周＝全員が1回ずつ親をやる</small>
+          </span>
+          <div className="stepper">
             <button
-              key={n}
               type="button"
-              role="radio"
-              aria-checked={config.laps === n}
-              className={config.laps === n ? 'on' : ''}
-              disabled={ro}
-              onClick={() => onChange?.({ ...config, laps: n })}
+              aria-label="周数を減らす"
+              disabled={ro || config.laps <= MIN_LAPS}
+              onClick={() => onChange?.({ ...config, laps: config.laps - 1 })}
             >
-              {n}周
+              −
             </button>
-          ))}
+            <output aria-live="polite" className="num">
+              {config.laps}周
+            </output>
+            <button
+              type="button"
+              aria-label="周数を増やす"
+              disabled={ro || config.laps >= MAX_LAPS}
+              onClick={() => onChange?.({ ...config, laps: config.laps + 1 })}
+            >
+              ＋
+            </button>
+          </div>
         </div>
         <small className="sub">
-          全員が{config.laps}回ずつ親をやって、全{players * config.laps}局
+          {players
+            ? `${players}人 × ${config.laps}周 ＝ 全${players * config.laps}局（約${estimateMinutes(players, config.laps)}分）`
+            : `局数は 人数 × 周数。例：4人なら全${4 * config.laps}局（約${estimateMinutes(4, config.laps)}分）`}
         </small>
       </div>
     </div>

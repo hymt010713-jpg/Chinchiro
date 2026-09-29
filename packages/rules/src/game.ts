@@ -13,7 +13,7 @@ export interface RoomConfig {
   shintaki: boolean;
   /** ションベン（ONのとき投擲ごとに shonbenRate の確率で起きる） */
   shonben: boolean;
-  /** 全員が親をやる回数 */
+  /** 全員が親をやる回数（周数） */
   laps: number;
   /** 1口の点数 */
   unitPoints: number;
@@ -24,12 +24,15 @@ export interface RoomConfig {
 export const DEFAULT_CONFIG: RoomConfig = {
   shintaki: false,
   shonben: false,
-  laps: 2,
+  laps: 3,
   unitPoints: 100,
   maxBet: 5,
 };
 
 export const SHONBEN_RATE = 0.01;
+/** ルーム設定で選べる周数 */
+export const MIN_LAPS = 3;
+export const MAX_LAPS = 10;
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
 
