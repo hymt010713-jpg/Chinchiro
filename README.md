@@ -21,6 +21,16 @@ npx tsx scripts/bots.ts ABCD 2       # 部屋 ABCD に BOT を2人
 npx tsx scripts/bots.ts --create 3   # BOT 3人だけで1局通す
 ```
 
+## インターネットに公開（Render）
+
+`render.yaml` があるので、Render の Blueprint でそのまま公開できる。
+
+1. https://render.com に GitHub アカウントでログイン
+2. 「New +」→「Blueprint」→ このリポジトリを選んで「Apply」
+3. 数分でビルドが終わり、`https://chinchiro-go-xxxx.onrender.com` のようなURLで遊べる
+
+`main` に push するたびに自動で更新される。無料プランは15分アクセスがないと眠り、次に開いたときの起動に1分ほどかかる。部屋はメモリに置いているので、更新や再起動で消える。
+
 ## 開発
 
 ```bash
