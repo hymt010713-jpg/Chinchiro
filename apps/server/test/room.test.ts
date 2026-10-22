@@ -110,6 +110,31 @@ describe('入室', () => {
 });
 
 describe('対局', () => {
+  it.each([false, true])('登録名で確率補正し、通常名には適用しない（締切での自動投擲=%s）', (automatic) => {
+    let values = [0, 0.99]; // 通常名の2人目が親になる。
+    let index = 0;
+    const room = new Room('NAME', DEFAULT_CONFIG, () => {
+      if (index >= values.length) throw new Error('予期しない乱数呼び出し');
+      return values[index++]!;
+    });
+    const special = room.addMember(' 新滝 ', new FakeConn());
+    const normal = room.addMember('別の人', new FakeConn());
+    room.handle(special.id, { t: 'start' });
+    untilBetting(room);
+    expect(room.oya).toBe(normal.id);
+    values = [0.1, 0.2, 0.3, 0.4, 0.5];
+    index = 0;
+    room.handle(special.id, { t: 'betDone' });
+    if (automatic) tick(10_000);
+    else room.handle(special.id, { t: 'roll' });
+    expect(room.view().game!.rolls[special.id]!.hand.key).toBe('arashi');
+    tick(5_000);
+    index = 0;
+    room.handle(normal.id, { t: 'roll' });
+    expect(room.view().game!.rolls[normal.id]!.hand.key).toBe('hifumi');
+    expect(room.game!.phase).toBe('settled');
+  });
+
   it('誰も操作しなくても締切とBOTで最後まで進み、合計0で終わる', () => {
     const { room, ids, conns } = setup(4, 3);
     room.handle(ids[0]!, { t: 'start' });

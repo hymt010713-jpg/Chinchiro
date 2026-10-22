@@ -5,6 +5,7 @@
  * betting → koRoll（子が時計回りに1回ずつ）→ oyaRoll（親が最後）→ settled → 次の局 or gameOver
  */
 import { judge, shonbenHand, type Hand } from './hands';
+import { rollDiceForName } from './named-roll';
 import { rollDie, type Rng } from './rng';
 import { settle } from './settle';
 
@@ -150,9 +151,9 @@ export function closeBets(s: GameState): GameState {
   return { ...s, phase: 'koRoll', turn: 0 };
 }
 
-export function makeRoll(config: RoomConfig, rng: Rng): Roll {
+export function makeRoll(config: RoomConfig, rng: Rng, playerName?: string): Roll {
   const shonben = config.shonben && rng() < SHONBEN_RATE;
-  const dice = Array.from({ length: 5 }, () => rollDie(rng));
+  const dice = rollDiceForName(shonben ? undefined : playerName, config.shintaki, rng);
   const hand = shonben ? shonbenHand() : judge(dice, { shintaki: config.shintaki });
   return { dice, shonben, hand };
 }
@@ -162,7 +163,7 @@ export function rollFor(s: GameState, playerId: string, rng: Rng, fixed?: Roll):
   const roller = currentRoller(s);
   if (roller === null) throw new GameError('振る場面ではない');
   if (roller !== playerId) throw new GameError('あなたの番ではない');
-  const roll = fixed ?? makeRoll(s.config, rng);
+  const roll = fixed ?? makeRoll(s.config, rng, s.players.find((p) => p.id === playerId)!.name);
   const rolls = { ...s.rolls, [playerId]: roll };
 
   if (s.phase === 'koRoll') {
