@@ -52,8 +52,9 @@ export const HANDS: Record<HandKey, Base> = {
   gopin: { key: 'gopin', name: '五ピン', rank: 15, win: 15, lose: 1, tier: 'kiwami' },
   gozoro: { key: 'gozoro', name: '五ゾロ', rank: 10, win: 10, lose: 1, tier: 'kiwami' },
   yonpin: { key: 'yonpin', name: '四ピン', rank: 8, win: 8, lose: 1, tier: 'kiwami' },
-  yonzoro: { key: 'yonzoro', name: '四ゾロ', rank: 5, win: 5, lose: 1, tier: 'dai' },
-  pinzoro: { key: 'pinzoro', name: 'ピンゾロ', rank: 5, win: 5, lose: 1, tier: 'dai' },
+  // 支払いは同じ5倍でも、強さは 四ゾロ > ピンゾロ > 順新滝。
+  yonzoro: { key: 'yonzoro', name: '四ゾロ', rank: 7, win: 5, lose: 1, tier: 'dai' },
+  pinzoro: { key: 'pinzoro', name: 'ピンゾロ', rank: 6, win: 5, lose: 1, tier: 'dai' },
   junShintaki: { key: 'junShintaki', name: '順新滝', rank: 5, win: 5, lose: 1, tier: 'dai' },
   arashi: { key: 'arashi', name: '嵐', rank: 3, win: 3, lose: 1, tier: 'chu' },
   shigoro: { key: 'shigoro', name: 'シゴロ', rank: 2, win: 2, lose: 1, tier: 'sho' },

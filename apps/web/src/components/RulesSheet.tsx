@@ -25,7 +25,7 @@ export function RulesSheet({ config, onClose }: { config: RoomConfig; onClose: (
             閉じる
           </button>
         </div>
-        <p className="small sub">上ほど強い。5倍の役どうし・嵐どうしなど同じ強さなら親の勝ち。目は数字で比べ、同じ目なら親の勝ち。</p>
+        <p className="small sub">上ほど強い。同じ倍率でも、役表で上にある役が勝つ。同じ役どうしなら親の勝ち。目は数字で比べ、同じ目なら親の勝ち。</p>
         <p className="small">
           支払い ＝ 口数 × 勝った側の倍率 × 負けた側の払い倍率
         </p>

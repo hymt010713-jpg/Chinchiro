@@ -33,9 +33,31 @@ describe('settle（子から見た口数）', () => {
   it('役の強さが上なら子の勝ち：親の嵐 vs 子のピンゾロ', () => {
     expect(settle(j('11123'), j('22245'), 2)).toBe(10);
   });
-  it('同じ強さは親の勝ち：嵐どうし、5倍どうし、同じ目', () => {
-    expect(settle(j('66612'), j('22245'), 1)).toBe(-3);
-    expect(settle(j('11145'), j('33334'), 1)).toBe(-5);
+  it.each([
+    ['四ゾロ', '33334', 'ピンゾロ', '11145'],
+    ['四ゾロ', '33334', '順新滝', '23456'],
+    ['四ゾロ', '33334', '嵐', '66612'],
+    ['ピンゾロ', '11145', '順新滝', '23456'],
+    ['ピンゾロ', '11145', '嵐', '66612'],
+    ['順新滝', '23456', '嵐', '66612'],
+  ])('%s は %s の出目で %s より強い（親子を交換しても同じ役が勝つ）', (_, stronger, __, weaker) => {
+    expect(settle(j(stronger, true), j(weaker, true), 2)).toBe(10);
+    expect(settle(j(weaker, true), j(stronger, true), 2)).toBe(-10);
+  });
+  it.each([
+    ['四ゾロ', '22223', '66665', 5],
+    ['ピンゾロ', '11145', '11123', 5],
+    ['順新滝', '23456', '65432', 5],
+    ['嵐', '66612', '22245', 3],
+  ])('同じ役なら親の勝ち：%s', (_, first, second, multiplier) => {
+    expect(settle(j(first, true), j(second, true), 2)).toBe(-2 * multiplier);
+    expect(settle(j(second, true), j(first, true), 2)).toBe(-2 * multiplier);
+  });
+  it('四ピンは四ゾロより強く、8倍払い', () => {
+    expect(settle(j('11112'), j('33334'), 2)).toBe(16);
+    expect(settle(j('33334'), j('11112'), 2)).toBe(-16);
+  });
+  it('同じ目なら親の勝ち', () => {
     expect(settle(j('15663'), j('22554'), 1)).toBe(-1);
   });
   it('目は数字で比べる', () => {
