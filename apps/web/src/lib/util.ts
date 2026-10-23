@@ -26,13 +26,7 @@ export function isBad(h: Hand): boolean {
   return h.rank < 1;
 }
 
-export function vibrate(ms: number | number[]) {
-  try {
-    navigator.vibrate?.(ms);
-  } catch {
-    // 振動できない端末は無視
-  }
-}
+export { vibrate } from './haptics';
 
 const KEY = 'chinchiro-go:v1';
 

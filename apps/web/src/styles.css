@@ -416,6 +416,7 @@ input:focus-visible {
   margin-left: auto;
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .topbar-actions .btn {
   padding: 6px 10px;
@@ -905,6 +906,79 @@ td.yk {
 }
 
 /* ---------- effects ---------- */
+.five-celebration {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  animation: fiveCelebrate 3.4s ease-out both;
+}
+.five-halo {
+  position: absolute;
+  inset: -30%;
+  background: repeating-conic-gradient(from 0deg, transparent 0deg 16deg, #f7cf6b55 17deg 20deg, transparent 21deg 40deg);
+  mask-image: radial-gradient(circle, transparent 5%, #000 28%, transparent 70%);
+  animation: fiveRays 3.4s ease-out both;
+}
+.five-ring {
+  position: absolute;
+  inset: 12%;
+  border: 3px solid #ffe6a2;
+  border-radius: 50%;
+  box-shadow: 0 0 24px #f4bd5888, inset 0 0 30px #f4bd5855;
+  animation: fiveRing 1.2s ease-out both;
+}
+.five-confetti {
+  position: absolute;
+  left: var(--x);
+  top: -10%;
+  width: 7px;
+  height: 15px;
+  background: #ffd777;
+  animation: fiveFall 2.5s var(--delay) ease-in both;
+}
+.five-confetti:nth-of-type(3n) { background: #fff4d1; }
+.five-confetti:nth-of-type(3n + 1) { background: #cf412e; }
+.five-title {
+  position: absolute;
+  inset: auto 0 5%;
+  padding: 18px 8px;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #ffe6a2;
+  text-align: center;
+  background: linear-gradient(90deg, transparent, #211108ed 20%, #211108ed 80%, transparent);
+  text-shadow: 0 2px 8px #000, 0 0 20px #d9ae5577;
+  animation: fiveTitle 0.6s 0.15s ease-out both;
+}
+.five-title > span { font-size: 12px; letter-spacing: 0.3em; }
+.five-title > strong { font-family: var(--brush); font-size: clamp(38px, 10vw, 72px); line-height: 1.1; font-weight: 400; }
+.five-title > small { font-size: 15px; letter-spacing: 0.1em; }
+@keyframes fiveCelebrate {
+  0% { opacity: 0; }
+  10%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes fiveRays {
+  from { transform: rotate(-16deg) scale(0.7); }
+  to { transform: rotate(30deg) scale(1.1); }
+}
+@keyframes fiveRing {
+  from { transform: scale(0.3); opacity: 0.9; }
+  to { transform: scale(1.8); opacity: 0; }
+}
+@keyframes fiveFall {
+  0% { transform: translateY(-20px) rotate(0); opacity: 0; }
+  15%, 75% { opacity: 1; }
+  100% { transform: translate(var(--drift), 560px) rotate(var(--spin)); opacity: 0; }
+}
+@keyframes fiveTitle {
+  from { transform: translateY(12px) scale(0.85); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
 #flash {
   position: fixed;
   inset: 0;
@@ -998,6 +1072,9 @@ td.yk {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .five-celebration { animation: none !important; opacity: 1; }
+  .five-title { animation: none !important; opacity: 1; }
+  .five-confetti, .five-ring, .five-halo, #flash { display: none; }
   *,
   *::before,
   *::after {

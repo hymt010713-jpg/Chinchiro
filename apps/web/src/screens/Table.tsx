@@ -11,14 +11,16 @@ import {
   rollAnimMs,
   type GameState,
   type Roll,
-  type Tier,
+  type Hand,
 } from '@chinchiro/rules';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bowl, type BowlMode } from '../components/Bowl';
+import { FiveOfAKind } from '../components/FiveOfAKind';
 import { RulesSheet } from '../components/RulesSheet';
 import { Seat } from '../components/Seat';
 import { isMuted, play, playHand, setMuted, unlockAudio } from '../lib/sfx';
 import { SEAT_COLORS, signed, vibrate } from '../lib/util';
+import { canVibrate, isVibrationEnabled, setVibrationEnabled, stopVibration, vibrateHand } from '../lib/haptics';
 
 export interface TableControls {
   /** この端末で操作する人。null なら全員（1台版） */
@@ -80,6 +82,7 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
   const [power, setPower] = useState(0);
   const [showRules, setShowRules] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
+  const [vibration, setVibration] = useState(isVibrationEnabled);
   const [confirmExit, setConfirmExit] = useState(false);
 
   const feltRef = useRef<HTMLDivElement>(null);
@@ -103,6 +106,7 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
   useEffect(
     () => () => {
       clearTimers();
+      stopVibration();
       if (hold.current) {
         clearInterval(hold.current.loop);
         cancelAnimationFrame(hold.current.raf);
@@ -111,6 +115,14 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
     [],
   );
 
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') stopVibration();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
   const oya = oyaId(game);
   const roller = currentRoller(game);
   const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? id;
@@ -118,14 +130,15 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
   const canControl = (id: string | null) => !!id && (me === null || me === id);
   const canRoll = canControl(roller) && !busy && !controls.disconnected;
 
-  const effects = (tier: Tier, bad: boolean) => {
+  const effects = (hand: Hand) => {
+    const { tier } = hand;
     const felt = feltRef.current;
     if (felt) {
       felt.classList.remove('fx-shake', 'fx-glow');
       void felt.offsetWidth;
       if (tier === 'chu' || tier === 'dai' || tier === 'kiwami') felt.classList.add('fx-shake');
       if (tier === 'dai' || tier === 'kiwami') felt.classList.add('fx-glow');
-      felt.classList.toggle('fx-dim', bad);
+      felt.classList.toggle('fx-dim', hand.rank < 1);
     }
     if (tier === 'kiwami') {
       const f = document.getElementById('flash');
@@ -134,9 +147,8 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
         void f.offsetWidth;
         f.classList.add('on');
       }
-      vibrate([30, 60, 30, 60, 120]);
-    } else if (tier === 'dai') vibrate([20, 40, 60]);
-    else vibrate(12);
+    }
+    vibrateHand(hand);
   };
 
   const finishAnim = () => {
@@ -180,7 +192,7 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
     later(LAND_DELAY_MS, () => {
       setAnim({ mode: 'landed', roll, throwId });
       playHand(roll.hand);
-      effects(roll.hand.tier, roll.hand.rank < 1);
+      effects(roll.hand);
     });
     later(rollAnimMs(roll.hand.tier), () => {
       setHidden((h) => h.filter((x) => x !== id));
@@ -197,6 +209,7 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
     if (prev === game) return;
     if (game.round !== prev.round) {
       clearTimers();
+      stopVibration();
       queue.current = [];
       animating.current = false;
       setBusy(false);
@@ -358,6 +371,20 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
           >
             {muted ? '音なし' : '音あり'}
           </button>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={!canVibrate()}
+            aria-pressed={canVibrate() && vibration}
+            title={canVibrate() ? 'この端末の振動を切り替える' : 'このブラウザは振動非対応です。画面と音の演出は楽しめます。'}
+            onClick={() => {
+              setVibrationEnabled(!vibration);
+              setVibration(!vibration);
+              if (!vibration) vibrate(70);
+            }}
+          >
+            {!canVibrate() ? '振動非対応' : vibration ? '振動あり' : '振動なし'}
+          </button>
           <button type="button" className={`btn ghost ${confirmExit ? 'danger' : ''}`} onClick={exit}>
             {confirmExit ? 'もう一度押すと退室' : exitLabel}
           </button>
@@ -416,6 +443,10 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
             throwId={anim.throwId}
             caption={caption}
           />
+          {bowlMode === 'landed' && anim.roll &&
+            (anim.roll.hand.key === 'gopin' || anim.roll.hand.key === 'gozoro') && (
+              <FiveOfAKind key={anim.throwId} hand={anim.roll.hand} />
+            )}
         </section>
       </div>
 

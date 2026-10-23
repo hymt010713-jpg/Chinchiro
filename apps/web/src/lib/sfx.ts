@@ -203,6 +203,18 @@ const SOUNDS = {
     MIYAKO.forEach((f, i) => koto(t + 1 + i * 0.06, f, 0.14));
     for (let i = 0; i < 14; i++) bell(t + 1.2 + rnd(0, 1.4), rnd(2500, 4500), 0.5, 0.04);
   },
+  fiveOfAKind() {
+    const t = now();
+    // 五つの打音から、銅鑼と上昇する琴の和音へ。
+    for (let i = 0; i < 5; i++) {
+      taiko(t + i * 0.11, 0.35 + i * 0.1);
+      bell(t + i * 0.11, MIYAKO[i]! * 2, 0.6, 0.08);
+    }
+    gong(t + 0.65, 82, 2.4);
+    gong(t + 0.65, 123, 2.2);
+    MIYAKO.forEach((f, i) => koto(t + 0.7 + i * 0.09, f, 0.18));
+    [1174.66, 1568, 1760].forEach((f) => bell(t + 1.55, f, 1.5, 0.09));
+  },
   hifumi() {
     const t = now();
     tone(t, 440, { glide: 170, a: 0.05, d: 0.9, g: 0.28, vib: 14 });
@@ -277,8 +289,8 @@ export function play(name: SoundName) {
 }
 
 const STINGER: Record<HandKey, SoundName> = {
-  gopin: 'kiwami',
-  gozoro: 'kiwami',
+  gopin: 'fiveOfAKind',
+  gozoro: 'fiveOfAKind',
   yonpin: 'kiwami',
   yonzoro: 'yonzoro',
   pinzoro: 'pinzoro',

@@ -10,7 +10,7 @@
     "dev:server": "npm run dev -w @chinchiro/server",
     "build": "npm run build -w @chinchiro/web",
     "start": "npm run build && npm run start -w @chinchiro/server",
-    "test": "npm test -w @chinchiro/rules && npm test -w @chinchiro/server",
+    "test": "npm test -w @chinchiro/rules && npm test -w @chinchiro/server && npm test -w @chinchiro/web",
     "typecheck": "tsc -p packages/rules && tsc -p apps/server && tsc -p apps/web --noEmit"
   },
   "devDependencies": {
