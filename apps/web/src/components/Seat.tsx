@@ -1,6 +1,7 @@
 import type { Player, Roll } from '@chinchiro/rules';
 import { payNote, signed } from '../lib/util';
 import { MiniDice } from './Die';
+import { CoinBurst } from './CoinBurst';
 
 interface Props {
   player: Player;
@@ -85,6 +86,7 @@ export function Seat({ player, color, score, isOya, isTurn, bet, maxBet, onBet, 
 
       {delta !== null && (
         <div className={`seat-delta num ${delta > 0 ? 'p' : 'm'}`}>
+          {delta > 0 && <CoinBurst />}
           {signed(delta)}
           <span>{delta > 0 ? '勝ち' : '負け'}</span>
         </div>

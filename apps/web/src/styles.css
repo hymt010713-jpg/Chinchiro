@@ -542,6 +542,7 @@ input:focus-visible {
   flex-wrap: wrap;
 }
 .seat-delta {
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -906,6 +907,141 @@ td.yk {
 }
 
 /* ---------- effects ---------- */
+.hold-aura {
+  position: absolute;
+  inset: 7%;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f4cf782b, transparent 65%);
+}
+.hold-aura i {
+  position: absolute;
+  inset: 9%;
+  border: 2px solid #b08434;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #f4cf7870;
+  animation: holdRipple 1.8s ease-out infinite;
+}
+.hold-aura i:nth-child(2) { animation-delay: -0.6s; }
+.hold-aura i:nth-child(3) { animation-delay: -1.2s; }
+.hold-aura span {
+  position: absolute;
+  inset: 40% 0 auto;
+  text-align: center;
+  font-family: var(--brush);
+  font-size: clamp(18px, 4.8vw, 25px);
+  color: #674517;
+  text-shadow: 0 1px 8px #fff4d7;
+}
+@keyframes holdRipple {
+  from { transform: scale(0.65); opacity: 0.75; }
+  to { transform: scale(1.14); opacity: 0; }
+}
+.hand-reveal {
+  --reveal-color: #ffe6a2;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 3;
+  color: var(--reveal-color);
+  animation: handReveal var(--reveal-duration) ease-out both;
+}
+.reveal-banner {
+  position: absolute;
+  inset: auto 0 5%;
+  padding: 12px 8px;
+  text-align: center;
+  display: grid;
+  gap: 2px;
+  background: linear-gradient(90deg, transparent, #1b1011ed 15%, #1b1011ed 85%, transparent);
+  text-shadow: 0 2px 8px #000;
+  animation: revealBrush 0.3s ease-out both;
+}
+.reveal-banner > span { font-size: 12px; letter-spacing: 0.14em; }
+.reveal-banner > strong { font: 400 clamp(30px, 8vw, 50px)/1.12 var(--brush); }
+.reveal-banner > small { font-size: 13px; }
+.reveal-water { --reveal-color: #c0f3ff; }
+.reveal-rain { --reveal-color: #c2d3ec; }
+.reveal-motif { position: absolute; inset: 0; }
+.reveal-motif i {
+  position: absolute;
+  pointer-events: none;
+}
+.reveal-four .reveal-motif i {
+  inset: 10%;
+  border: 1px solid #ffe6a277;
+  border-radius: 50%;
+  animation: sealRing 1.1s calc(var(--i) * 0.07s) ease-out both;
+}
+.reveal-wind .reveal-motif i {
+  left: -50%;
+  top: calc(8% + var(--i) * 9%);
+  width: 120%;
+  height: 25%;
+  border-top: 3px solid #ffe6a2aa;
+  border-radius: 50%;
+  transform: rotate(-18deg);
+  animation: windSweep 0.85s calc(var(--i) * 0.05s) ease-out both;
+}
+.reveal-water .reveal-motif i,
+.reveal-rain .reveal-motif i {
+  left: calc(6% + var(--i) * 11%);
+  top: -45%;
+  height: 40%;
+  width: 3px;
+  background: linear-gradient(transparent, var(--reveal-color), transparent);
+  animation: waterFall 1.1s calc(var(--i) * 0.07s) ease-in both;
+}
+.reveal-rain .reveal-motif i { height: 18%; width: 1px; }
+.reveal-rain .reveal-banner { background: linear-gradient(90deg, transparent, #142135f2 15%, #142135f2 85%, transparent); }
+@keyframes handReveal {
+  0% { opacity: 0; }
+  12%, 78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes revealBrush {
+  from { transform: translateX(-24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes sealRing {
+  from { transform: scale(0.4); opacity: 0.8; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+@keyframes windSweep {
+  from { translate: -30% 0; opacity: 0; }
+  25% { opacity: 1; }
+  to { translate: 75% 0; opacity: 0; }
+}
+@keyframes waterFall {
+  from { transform: translateY(0); opacity: 0; }
+  20%, 60% { opacity: 0.8; }
+  to { transform: translateY(650px); opacity: 0; }
+}
+.coin-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  z-index: 4;
+}
+.coin-burst i {
+  position: absolute;
+  width: 11px;
+  height: 17px;
+  border: 2px solid #d7a13c;
+  border-radius: 45%;
+  background: repeating-linear-gradient(0deg, #ffe9a0 0 3px, #d7a13c 3px 4px);
+  box-shadow: 0 0 5px #ffd77788;
+  animation: coinBurst 0.8s var(--coin-delay) ease-out both;
+}
+@keyframes coinBurst {
+  from { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
+  15% { opacity: 1; }
+  60% { opacity: 1; }
+  to { transform: translate(var(--coin-x), var(--coin-y)) rotate(var(--coin-r)); opacity: 0; }
+}
 .five-celebration {
   position: absolute;
   inset: 0;
@@ -1072,6 +1208,8 @@ td.yk {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .hold-aura i, .reveal-motif, .coin-burst { display: none; }
+  .hand-reveal, .reveal-banner { animation: none !important; opacity: 1; }
   .five-celebration { animation: none !important; opacity: 1; }
   .five-title { animation: none !important; opacity: 1; }
   .five-confetti, .five-ring, .five-halo, #flash { display: none; }

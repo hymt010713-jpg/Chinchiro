@@ -114,6 +114,13 @@ export function Bowl({ mode, dice, hand, shonben, throwId, caption }: Props) {
 
       {mode === 'empty' && caption && <div className="bowl-caption">{caption}</div>}
 
+      {mode === 'holding' && (
+        <div className="hold-aura" aria-hidden="true">
+          <i /><i /><i />
+          <span>運を、この一投に。</span>
+        </div>
+      )}
+
       {showDice &&
         positions.map(([x, y, r], i) => {
           const cls = ['die'];

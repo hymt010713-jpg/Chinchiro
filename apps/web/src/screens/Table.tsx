@@ -15,7 +15,7 @@ import {
 } from '@chinchiro/rules';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bowl, type BowlMode } from '../components/Bowl';
-import { FiveOfAKind } from '../components/FiveOfAKind';
+import { HandReveal } from '../components/HandReveal';
 import { RulesSheet } from '../components/RulesSheet';
 import { Seat } from '../components/Seat';
 import { isMuted, play, playHand, setMuted, unlockAudio } from '../lib/sfx';
@@ -443,10 +443,9 @@ export function Table({ game, controls, onExit, exitLabel, badge }: Props) {
             throwId={anim.throwId}
             caption={caption}
           />
-          {bowlMode === 'landed' && anim.roll &&
-            (anim.roll.hand.key === 'gopin' || anim.roll.hand.key === 'gozoro') && (
-              <FiveOfAKind key={anim.throwId} hand={anim.roll.hand} />
-            )}
+          {bowlMode === 'landed' && anim.roll && (
+            <HandReveal key={anim.throwId} hand={anim.roll.hand} />
+          )}
         </section>
       </div>
 
